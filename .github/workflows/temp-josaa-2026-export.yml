@@ -1,0 +1,40 @@
+name: Temporary JoSAA 2026 PDF Export
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tools/josaa_2026_export.py
+      - .github/workflows/temp-josaa-2026-export.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export-pdfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install PDF dependencies
+        run: python -m pip install --disable-pip-version-check requests reportlab pypdf
+
+      - name: Fetch, validate and generate PDFs
+        run: python tools/josaa_2026_export.py
+
+      - name: Upload completed ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: JoSAA_2026_Rounds_1_to_4_OR_CR_PDFs
+          path: output/JoSAA_2026_Rounds_1_to_4_OR_CR_PDFs.zip
+          if-no-files-found: error
+          retention-days: 1
