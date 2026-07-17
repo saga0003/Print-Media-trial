@@ -32,8 +32,12 @@ jobs:
 
       - name: Package results
         run: |
-          find output_round5 -maxdepth 1 -type f -printf '%f %s bytes\n' || true
-          zip -j JoSAA_2026_Round_5_export.zip output_round5/*
+          pwd
+          find . -maxdepth 4 -type f -printf '%p %s bytes\n'
+          mkdir -p collected_round5
+          find . -maxdepth 4 -type f \( -name 'JoSAA_2026_Round_5_OR_CR.pdf' -o -name 'JoSAA_2026_Round_5_OR_CR.csv' -o -name 'manifest.json' -o -name 'stage_summary.json' -o -name 'round5_result_response.html' \) -exec cp {} collected_round5/ \;
+          echo 'Round 5 collection diagnostic' > collected_round5/RUN_MARKER.txt
+          zip -j JoSAA_2026_Round_5_export.zip collected_round5/*
 
       - name: Upload Round 5 package
         uses: actions/upload-artifact@v4
