@@ -25,24 +25,15 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check requests beautifulsoup4 lxml pandas reportlab pypdf
+        run: python -m pip install --disable-pip-version-check requests reportlab pypdf
 
-      - name: Fetch official Round 5 data and generate PDF
+      - name: Generate and validate Round 5 PDF
         run: python tools/josaa_round5_official_export.py
 
-      - name: Package results
-        run: |
-          pwd
-          find . -maxdepth 4 -type f -printf '%p %s bytes\n'
-          mkdir -p collected_round5
-          find . -maxdepth 4 -type f \( -name 'JoSAA_2026_Round_5_OR_CR.pdf' -o -name 'JoSAA_2026_Round_5_OR_CR.csv' -o -name 'manifest.json' -o -name 'stage_summary.json' -o -name 'round5_result_response.html' \) -exec cp {} collected_round5/ \;
-          echo 'Round 5 collection diagnostic' > collected_round5/RUN_MARKER.txt
-          zip -j JoSAA_2026_Round_5_export.zip collected_round5/*
-
-      - name: Upload Round 5 package
+      - name: Upload Round 5 deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: JoSAA_2026_Round_5_export_${{ github.run_number }}
-          path: JoSAA_2026_Round_5_export.zip
+          name: JoSAA_2026_Round_5_OR_CR_${{ github.run_number }}
+          path: output_round5/
           if-no-files-found: error
           retention-days: 1
