@@ -30,10 +30,15 @@ jobs:
       - name: Fetch official Round 5 data and generate PDF
         run: python tools/josaa_round5_official_export.py
 
-      - name: Upload Round 5 deliverables
+      - name: Package results
+        run: |
+          find output_round5 -maxdepth 1 -type f -printf '%f %s bytes\n' || true
+          zip -j JoSAA_2026_Round_5_export.zip output_round5/*
+
+      - name: Upload Round 5 package
         uses: actions/upload-artifact@v4
         with:
-          name: JoSAA_2026_Round_5_OR_CR_PDF
-          path: output_round5/
+          name: JoSAA_2026_Round_5_export_${{ github.run_number }}
+          path: JoSAA_2026_Round_5_export.zip
           if-no-files-found: error
           retention-days: 1
