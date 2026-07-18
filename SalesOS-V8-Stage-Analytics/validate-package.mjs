@@ -38,7 +38,7 @@ const markers = [
   'makeForecast',
   'STAGE_REPORT_CACHE_SECONDS',
   'ALLOWED_DIMENSIONS',
-  'Combine up to three dimensions and five stage measures',
+  'Combine up to five dimensions and five stage measures',
 ];
 for (const marker of markers) if (!joined.includes(marker)) throw new Error(`Missing V8 marker: ${marker}`);
 console.log(`SalesOS V8 package validation passed: ${required.length} required files and ${markers.length} feature markers.`);
