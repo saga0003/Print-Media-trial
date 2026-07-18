@@ -62,6 +62,10 @@ if (Test-Path $StagePage) {
     $Content = $Content.Replace("  Users,`n", "")
     $UnusedBlock = '(?ms)^  const stageLeadCounts = useMemo\(\(\) => \{.*?^  \}, \[data\]\);\r?\n'
     $Content = [regex]::Replace($Content, $UnusedBlock, "")
+    $Content = $Content.Replace(
+        'body: JSON.stringify({ force, from: force ? draft.from : undefined, to: draft.to }),',
+        'body: JSON.stringify({ force }),' 
+    )
     Set-Content -Path $StagePage -Value $Content -Encoding UTF8
 }
 
@@ -137,7 +141,7 @@ npm run typecheck
 npm run dev
 
 First use: open Stage Analytics and click **Run first full sync**.
-Normal Apply Filters requests read the local analytics cache and do not re-fetch all Odoo chatter.
+The first full sync uses ODOO_STAGE_HISTORY_DAYS from .env.local. Normal Apply Filters requests read the local analytics cache and do not re-fetch all Odoo chatter.
 
 Backup created at:
 $BackupPath
