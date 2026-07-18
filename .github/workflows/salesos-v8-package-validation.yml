@@ -1,0 +1,17 @@
+name: SalesOS V8 Package Validation
+
+on:
+  push:
+    branches:
+      - salesos-v8-full-20260718
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node SalesOS-V8-Stage-Analytics/validate-package.mjs
