@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const to = params.get('to') || new Date().toISOString().slice(0, 10);
     const granularity = params.get('granularity') || 'week';
     const cohort = (params.get('cohort') || 'all') as CohortKey;
-    const dimensions = params.getAll('dimension').filter((item) => ALLOWED_DIMENSIONS.has(item)).slice(0, 3);
+    const dimensions = params.getAll('dimension').filter((item) => ALLOWED_DIMENSIONS.has(item)).slice(0, 5);
     if (!dimensions.length) dimensions.push('date');
     const stages = params.getAll('stage').filter(Boolean).slice(0, 5);
     const filters = {
