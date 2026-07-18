@@ -64,12 +64,19 @@ $envText = Get-Content $envPath -Raw -ErrorAction SilentlyContinue
 if ($envText -notmatch 'STAGE_EVENTS_FILE=') {
   Add-Content $envPath $envBlock
 }
+$envText = Get-Content $envPath -Raw -ErrorAction SilentlyContinue
+$odooUrlMatch = [regex]::Match($envText, '(?m)^ODOO_URL=(.+)$')
+if ($odooUrlMatch.Success -and $envText -notmatch '(?m)^NEXT_PUBLIC_ODOO_URL=') {
+  Add-Content $envPath "`r`nNEXT_PUBLIC_ODOO_URL=$($odooUrlMatch.Groups[1].Value.Trim())"
+}
 
 $layoutPath = Join-Path $root 'src\app\layout.tsx'
 if (Test-Path $layoutPath) {
   $layout = Get-Content $layoutPath -Raw
   if ($layout -notmatch 'salesos-v8-stage-launcher' -and $layout -match '</body>') {
-    Copy-Item $layoutPath (Join-Path $backup 'src\app\layout.tsx') -Force -ErrorAction SilentlyContinue
+    $layoutBackup = Join-Path $backup 'src\app\layout.tsx'
+    New-Item -ItemType Directory -Path (Split-Path $layoutBackup -Parent) -Force | Out-Null
+    Copy-Item $layoutPath $layoutBackup -Force
     $launcher = @'
         <a
           id="salesos-v8-stage-launcher"
