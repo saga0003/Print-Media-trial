@@ -38,6 +38,17 @@ function parseFilters(url: URL): StageAnalyticsFilters {
   };
 }
 
+function withConnection(data: ReturnType<typeof analyseStageStore>) {
+  const server = (process.env.ODOO_URL || "").replace(/\/+$/, "");
+  return {
+    ...data,
+    connection: {
+      server,
+      recordBaseUrl: server ? `${server}/web#model=crm.lead&view_type=form&id=` : "",
+    },
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -49,16 +60,17 @@ export async function GET(request: Request) {
     }
 
     const store = await readStageStore();
+    const data = withConnection(analyseStageStore(store, filters));
+
     if (store.events.length === 0) {
       return NextResponse.json({
         ok: true,
         cached: false,
         needsSync: true,
-        data: analyseStageStore(store, filters),
+        data,
       });
     }
 
-    const data = analyseStageStore(store, filters);
     responseCache.set(cacheKey, { expires: Date.now() + 60_000, value: data });
     if (responseCache.size > 100) {
       const first = responseCache.keys().next().value as string | undefined;
