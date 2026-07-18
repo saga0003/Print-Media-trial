@@ -75,18 +75,21 @@ export async function authenticateOdoo(): Promise<number> {
   return uidPromise;
 }
 
-export function normaliseDomain(domain: unknown): unknown[][] {
-  if (!Array.isArray(domain)) return [];
-  if (domain.length === 0) return [];
+export function normaliseDomain(domain: unknown): unknown[] {
+  if (!Array.isArray(domain) || domain.length === 0) return [];
 
   const isLeaf =
     domain.length >= 3 &&
     typeof domain[0] === "string" &&
-    typeof domain[1] === "string";
+    typeof domain[1] === "string" &&
+    !["|", "&", "!"].includes(domain[0]);
 
-  if (isLeaf) return [domain as unknown[]];
+  if (isLeaf) return [domain];
 
-  return domain.filter((item): item is unknown[] => Array.isArray(item));
+  return domain.filter((item) => {
+    if (Array.isArray(item)) return item.length >= 3;
+    return item === "|" || item === "&" || item === "!";
+  });
 }
 
 export async function executeKw<T>(
@@ -96,7 +99,7 @@ export async function executeKw<T>(
   keyword: Record<string, unknown> = {},
 ): Promise<T> {
   const uid = await authenticateOdoo();
-  const args = positional.length > 0 ? positional : [];
+  const args = positional.length > 0 ? [...positional] : [];
 
   if (
     (method === "search" || method === "search_read" || method === "search_count") &&
