@@ -12,9 +12,12 @@ const required = [
   'payload/src/lib/stage-analytics/report.ts',
   'payload/src/app/api/stage-analytics/sync/route.ts',
   'payload/src/app/api/stage-analytics/report/route.ts',
+  'payload/src/app/api/stage-analytics/studio/route.ts',
   'payload/src/app/api/stage-analytics/saved-reports/route.ts',
   'payload/src/app/stage-analytics/page.tsx',
+  'payload/src/app/stage-analytics/chart-studio/page.tsx',
   'payload/src/components/salesos/views/stage-analytics-v8.tsx',
+  'payload/src/components/salesos/views/chart-studio-pro-v8.tsx',
   'payload/scripts/test-v8-stage.mjs',
 ];
 for (const file of required) await access(path.join(root, file));
@@ -34,6 +37,8 @@ const markers = [
   'makeConversionMatrix',
   'makeForecast',
   'STAGE_REPORT_CACHE_SECONDS',
+  'ALLOWED_DIMENSIONS',
+  'Combine up to three dimensions and five stage measures',
 ];
 for (const marker of markers) if (!joined.includes(marker)) throw new Error(`Missing V8 marker: ${marker}`);
 console.log(`SalesOS V8 package validation passed: ${required.length} required files and ${markers.length} feature markers.`);
