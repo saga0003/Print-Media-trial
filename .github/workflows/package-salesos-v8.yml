@@ -1,0 +1,96 @@
+name: Package SalesOS V8 Upgrade
+
+on:
+  push:
+    branches:
+      - salesos-v8-stage-analytics
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate V8 bundle
+        run: |
+          test -f SalesOS-V8-Upgrade/apply-v8-upgrade.ps1
+          test -f SalesOS-V8-Upgrade/payload/src/app/stage-analytics/page.tsx
+          test -f SalesOS-V8-Upgrade/payload/src/components/v8/StageAnalyticsPage.tsx
+          test -f SalesOS-V8-Upgrade/payload/src/lib/v8/stage-sync.ts
+          test -f SalesOS-V8-Upgrade/payload/src/lib/v8/stage-analytics.ts
+          grep -q "mail.tracking.value" SalesOS-V8-Upgrade/payload/src/lib/v8/stage-sync.ts
+          grep -q "cleared_not_admitted" SalesOS-V8-Upgrade/payload/src/lib/v8/stage-analytics.ts
+          grep -q "Chart Studio Pro" SalesOS-V8-Upgrade/payload/src/components/v8/StageAnalyticsPage.tsx
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build isolated TypeScript validation project
+        run: |
+          mkdir -p SalesOS-V8-Upgrade/validation
+          cat > SalesOS-V8-Upgrade/validation/package.json <<'EOF'
+          {
+            "private": true,
+            "scripts": { "typecheck": "tsc --noEmit" },
+            "dependencies": {
+              "@types/node": "^22.0.0",
+              "@types/react": "^19.0.0",
+              "@types/react-dom": "^19.0.0",
+              "lucide-react": "^0.468.0",
+              "next": "^16.0.0",
+              "react": "^19.0.0",
+              "react-dom": "^19.0.0",
+              "recharts": "^2.15.0",
+              "typescript": "^5.7.0"
+            }
+          }
+          EOF
+          cat > SalesOS-V8-Upgrade/validation/tsconfig.json <<'EOF'
+          {
+            "compilerOptions": {
+              "target": "ES2022",
+              "lib": ["dom", "dom.iterable", "es2022"],
+              "allowJs": false,
+              "skipLibCheck": true,
+              "strict": true,
+              "noEmit": true,
+              "esModuleInterop": true,
+              "module": "esnext",
+              "moduleResolution": "bundler",
+              "resolveJsonModule": true,
+              "isolatedModules": true,
+              "jsx": "preserve",
+              "baseUrl": ".",
+              "paths": { "@/*": ["src/*"] }
+            },
+            "include": ["src/**/*.ts", "src/**/*.tsx"]
+          }
+          EOF
+          cp -R SalesOS-V8-Upgrade/payload/src SalesOS-V8-Upgrade/validation/src
+          cd SalesOS-V8-Upgrade/validation
+          npm install --package-lock-only --ignore-scripts
+          npm ci --ignore-scripts
+          npm run typecheck
+
+      - name: Create ZIP
+        run: |
+          rm -rf SalesOS-V8-Upgrade/validation
+          cd SalesOS-V8-Upgrade
+          zip -r ../SalesOS-V8-Stage-Analytics-Upgrade.zip . -x "*.DS_Store"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SalesOS-V8-Stage-Analytics-Upgrade
+          path: SalesOS-V8-Stage-Analytics-Upgrade.zip
+          if-no-files-found: error
+          retention-days: 30
