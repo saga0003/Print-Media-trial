@@ -99,24 +99,23 @@ function hasReached(events: StageEvent[], stage: string): boolean {
 }
 
 function isLostStage(stage: string): boolean {
-  const key = stageKey(stage);
-  return LOST_STAGES.includes(key);
+  return LOST_STAGES.includes(stageKey(stage));
 }
 
 function determineCohort(snapshot: StageSnapshot, history: StageEvent[]): StageCohort | "other" {
-  const admitted = hasReached(history, ALLOTTED);
-  if (admitted) return "admitted";
+  if (hasReached(history, ALLOTTED)) return "admitted";
+
+  const visited = hasReached(history, VISITED);
+  if (visited && isLostStage(snapshot.currentStage)) return "lost_after_visit";
 
   const cleared = hasReached(history, CLEARED);
   const paymentPending = hasReached(history, PAYMENT_PENDING);
-  if (cleared && !paymentPending && !admitted) return "cleared_not_admitted";
-  if (paymentPending && !admitted) return "payment_pending_not_allotted";
+  if (cleared && !paymentPending) return "cleared_not_admitted";
+  if (paymentPending) return "payment_pending_not_allotted";
 
-  const visited = hasReached(history, VISITED);
   const examReached =
     hasReached(history, WRITTEN_EXAM) || hasReached(history, RETEST) || hasReached(history, CLEARED);
   if (visited && !examReached) return "visited_not_exam";
-  if (visited && isLostStage(snapshot.currentStage)) return "lost_after_visit";
   return "other";
 }
 
@@ -154,8 +153,12 @@ function snapshotMatches(snapshot: StageSnapshot, filters: StageAnalyticsFilters
 
 export function analyseStageStore(store: StageStore, filters: StageAnalyticsFilters) {
   const grouped = eventsByLead(store.events);
-  const from = filters.from ? new Date(`${filters.from}T00:00:00.000Z`).getTime() : Number.MIN_SAFE_INTEGER;
-  const to = filters.to ? new Date(`${filters.to}T23:59:59.999Z`).getTime() : Number.MAX_SAFE_INTEGER;
+  const from = filters.from
+    ? new Date(`${filters.from}T00:00:00.000Z`).getTime()
+    : Number.MIN_SAFE_INTEGER;
+  const to = filters.to
+    ? new Date(`${filters.to}T23:59:59.999Z`).getTime()
+    : Number.MAX_SAFE_INTEGER;
   const selectedStages = new Set(filters.stages.map(stageKey));
 
   const eligibleSnapshots = store.snapshots.filter((snapshot) => {
@@ -165,12 +168,14 @@ export function analyseStageStore(store: StageStore, filters: StageAnalyticsFilt
   });
   const eligibleLeadIds = new Set(eligibleSnapshots.map((snapshot) => snapshot.leadId));
 
-  const events = store.events.filter((event) => {
+  const periodEvents = store.events.filter((event) => {
     if (!eligibleLeadIds.has(event.leadId)) return false;
     const timestamp = parseDate(event.changedAt).getTime();
-    if (timestamp < from || timestamp > to) return false;
-    return selectedStages.size === 0 || selectedStages.has(stageKey(event.newStage));
+    return timestamp >= from && timestamp <= to;
   });
+  const events = periodEvents.filter(
+    (event) => selectedStages.size === 0 || selectedStages.has(stageKey(event.newStage)),
+  );
 
   const allStageNames = store.stages.map((stage) => stage.name);
   const visibleStages = filters.stages.length ? filters.stages : allStageNames;
@@ -189,10 +194,8 @@ export function analyseStageStore(store: StageStore, filters: StageAnalyticsFilt
 
   const stageStats = visibleStages.map((stageName) => {
     const key = stageKey(stageName);
-    const entries = events.filter((event) => stageKey(event.newStage) === key);
-    const exits = store.events.filter(
-      (event) => eligibleLeadIds.has(event.leadId) && stageKey(event.oldStage) === key,
-    );
+    const entries = periodEvents.filter((event) => stageKey(event.newStage) === key);
+    const exits = periodEvents.filter((event) => stageKey(event.oldStage) === key);
     const current = eligibleSnapshots.filter((snapshot) => stageKey(snapshot.currentStage) === key);
     return {
       stage: stageName,
@@ -210,13 +213,15 @@ export function analyseStageStore(store: StageStore, filters: StageAnalyticsFilt
     { fromStage: string; toStage: string; leadIds: Set<number>; durations: number[] }
   >();
   for (const snapshot of eligibleSnapshots) {
-    const history = (grouped.get(snapshot.leadId) || []).filter((event) => !event.synthetic);
-    for (let index = 1; index < history.length; index += 1) {
-      const previous = history[index - 1];
+    const history = grouped.get(snapshot.leadId) || [];
+    for (let index = 0; index < history.length; index += 1) {
       const current = history[index];
-      const fromStage = previous.newStage || current.oldStage;
+      if (current.synthetic) continue;
+      const previous = history[index - 1];
+      const fromStage = current.oldStage || previous?.newStage || "";
       const toStage = current.newStage;
       if (!fromStage || !toStage || stageKey(fromStage) === stageKey(toStage)) continue;
+
       const key = `${stageKey(fromStage)}>${stageKey(toStage)}`;
       const record = conversionMap.get(key) || {
         fromStage,
@@ -225,7 +230,8 @@ export function analyseStageStore(store: StageStore, filters: StageAnalyticsFilt
         durations: [],
       };
       record.leadIds.add(snapshot.leadId);
-      record.durations.push(dayDiff(previous.changedAt, current.changedAt));
+      const enteredFromAt = previous?.changedAt || snapshot.createdAt;
+      if (enteredFromAt) record.durations.push(dayDiff(enteredFromAt, current.changedAt));
       conversionMap.set(key, record);
     }
   }
@@ -323,8 +329,6 @@ export function analyseStageStore(store: StageStore, filters: StageAnalyticsFilt
     conversionMatrix,
     journey,
     leads: leads.sort((a, b) => b.daysSinceLastMovement - a.daysSinceLastMovement).slice(0, 1000),
-    invalidExcluded: eligibleSnapshots.filter((lead) =>
-      INVALID_STAGES.includes(stageKey(lead.currentStage)),
-    ).length,
+    invalidExcluded: eligibleSnapshots.filter((lead) => INVALID_STAGES.includes(stageKey(lead.currentStage))).length,
   };
 }
