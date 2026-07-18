@@ -90,7 +90,7 @@ export default function ChartStudioProV8() {
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ from, to, granularity, cohort });
-    dimensions.slice(0, 3).forEach((dimension) => params.append('dimension', dimension));
+    dimensions.slice(0, 5).forEach((dimension) => params.append('dimension', dimension));
     series.slice(0, 5).forEach((item) => params.append('stage', item.stage));
     if (academicYear) params.set('academicYear', academicYear);
     if (institute) params.set('institute', institute);
@@ -117,7 +117,7 @@ export default function ChartStudioProV8() {
   useEffect(() => { void apply(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggleDimension(value: string) {
-    setDimensions((current) => current.includes(value) ? current.filter((item) => item !== value) : current.length < 3 ? [...current, value] : current);
+    setDimensions((current) => current.includes(value) ? current.filter((item) => item !== value) : current.length < 5 ? [...current, value] : current);
   }
 
   function updateSeries(id: string, patch: Partial<Series>) {
@@ -136,7 +136,7 @@ export default function ChartStudioProV8() {
         <div className="rounded-3xl bg-[#131E35] p-5 text-white shadow-xl">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">SalesOS V8</div>
           <div className="mt-1 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div><h1 className="text-3xl font-bold">Chart Studio Pro</h1><p className="mt-1 text-sm text-slate-300">Combine up to three dimensions and five stage measures with bar, line and area charts.</p></div>
+            <div><h1 className="text-3xl font-bold">Chart Studio Pro</h1><p className="mt-1 text-sm text-slate-300">Combine up to five dimensions and five stage measures with bar, line and area charts.</p></div>
             <a href="/stage-analytics" className="rounded-xl border border-white/30 px-4 py-2 text-sm font-semibold">Back to Stage Analytics</a>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function ChartStudioProV8() {
             <div className="flex items-end xl:col-span-2"><button onClick={() => void apply()} disabled={loading} className="w-full rounded-xl bg-[#131E35] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{loading ? 'Building chart…' : 'Apply Chart'}</button></div>
           </div>
 
-          <div className="mt-4"><div className="text-xs font-bold uppercase text-slate-500">Dimensions — choose up to three</div><div className="mt-2 flex flex-wrap gap-2">{DIMENSIONS.map(([value, label]) => <button key={value} onClick={() => toggleDimension(value)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${dimensions.includes(value) ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-slate-200 text-slate-600'}`}>{label}</button>)}</div></div>
+          <div className="mt-4"><div className="text-xs font-bold uppercase text-slate-500">Dimensions — choose up to five</div><div className="mt-2 flex flex-wrap gap-2">{DIMENSIONS.map(([value, label]) => <button key={value} onClick={() => toggleDimension(value)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${dimensions.includes(value) ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-slate-200 text-slate-600'}`}>{label}</button>)}</div></div>
         </section>
 
         <section className="mt-4 rounded-3xl border bg-white p-4 shadow-sm">
