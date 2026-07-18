@@ -1,0 +1,43 @@
+name: Package SalesOS V8 Upgrade
+
+on:
+  push:
+    branches:
+      - salesos-v8-stage-analytics
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate V8 bundle
+        run: |
+          test -f SalesOS-V8-Upgrade/apply-v8-upgrade.ps1
+          test -f SalesOS-V8-Upgrade/payload/src/app/stage-analytics/page.tsx
+          test -f SalesOS-V8-Upgrade/payload/src/components/v8/StageAnalyticsPage.tsx
+          test -f SalesOS-V8-Upgrade/payload/src/lib/v8/stage-sync.ts
+          test -f SalesOS-V8-Upgrade/payload/src/lib/v8/stage-analytics.ts
+          grep -q "mail.tracking.value" SalesOS-V8-Upgrade/payload/src/lib/v8/stage-sync.ts
+          grep -q "cleared_not_admitted" SalesOS-V8-Upgrade/payload/src/lib/v8/stage-analytics.ts
+          grep -q "Chart Studio Pro" SalesOS-V8-Upgrade/payload/src/components/v8/StageAnalyticsPage.tsx
+
+      - name: Create ZIP
+        run: |
+          cd SalesOS-V8-Upgrade
+          zip -r ../SalesOS-V8-Stage-Analytics-Upgrade.zip . -x "*.DS_Store"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SalesOS-V8-Stage-Analytics-Upgrade
+          path: SalesOS-V8-Stage-Analytics-Upgrade.zip
+          if-no-files-found: error
+          retention-days: 30
